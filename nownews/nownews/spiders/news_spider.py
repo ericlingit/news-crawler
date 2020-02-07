@@ -38,13 +38,9 @@ class NewsSpider(scrapy.Spider):
 
         # Follow links
         for link in list(article_links.keys()):
-            self.links.append(link)
-            self.title.append(article_links[link])
             yield scrapy.Request(link, callback=self.parse_page)
 
     def parse_page(self, response: scrapy.http.TextResponse):
-        # Article URL
-        response.url
         # Extract title
         title = response.xpath('//h1[@class="entry-title"]').get()
         # Extract article text
@@ -52,6 +48,8 @@ class NewsSpider(scrapy.Spider):
         txt_list = [tag.get() for tag in p]
         txt = ''.join(txt_list)
         # Add to collection
+        self.links.append(response.url)
+        self.title.append(title)
         self.text.append(txt)
 
     def closed(self, reason):
