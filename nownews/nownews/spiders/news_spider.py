@@ -1,5 +1,6 @@
 import scrapy
 import json
+from pathlib import Path
 
 class NewsSpider(scrapy.Spider):
     name = 'news_spider'
@@ -12,6 +13,9 @@ class NewsSpider(scrapy.Spider):
         self.links = []
         self.title = []
         self.text = []
+        # Create `output` dir
+        self.out_dir = Path('./output')
+        self.out_dir.mkdir(parents=True, exist_ok=True)
 
     def start_requests(self):
         # Go to each news category page
