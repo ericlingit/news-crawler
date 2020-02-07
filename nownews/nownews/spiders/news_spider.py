@@ -38,11 +38,10 @@ class NewsSpider(scrapy.Spider):
 
         # Follow links
         for link in list(article_links.keys()):
-            yield scrapy.Request(link, callback=self.parse_page)
+            yield scrapy.Request(link, callback=self.parse_page, cb_kwargs={'title': article_links[link]})
+            # Set `dont_filter=True` to force scrape duplicate links
 
-    def parse_page(self, response: scrapy.http.TextResponse):
-        # Extract title
-        title = response.xpath('//h1[@class="entry-title"]').get()
+    def parse_page(self, response: scrapy.http.TextResponse, title=''):
         # Extract article text
         p = response.xpath('//span/p')
         txt_list = [tag.get() for tag in p]
