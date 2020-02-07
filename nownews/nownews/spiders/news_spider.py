@@ -1,4 +1,5 @@
 import scrapy
+import json
 
 class NewsSpider(scrapy.Spider):
     name = 'news_spider'
@@ -7,10 +8,14 @@ class NewsSpider(scrapy.Spider):
         super()
         self.category = category
         self.url = f'https://www.nownews.com/cat/{category}/page/'
+        # Collect scraped data
+        self.links = []
+        self.title = []
+        self.text = []
 
     def start_requests(self):
         # Go to each news category page
-        urls = [f'{self.url}/{str(i)}/' for i in range(1, 3)]
+        urls = [f'{self.url}/{str(i)}/' for i in range(1, 6)]
         for u in urls:
             yield scrapy.Request(u, callback=self.parse_links)
 
@@ -20,20 +25,43 @@ class NewsSpider(scrapy.Spider):
         # `a` is a list of Selector objects
         # Call `a[0].attrib['href']` to get the href attribute of item 0
         # eg: <Selector xpath='//div[@id="nn-news-list"]/div/div/div/div/div/div/div/div/h3/a' data='<a href="https://www.nownews.com/news...'>
-        # article_links = [elem.attrib['href'] for elem in a]
+        article_links = {elem.attrib['href']: elem.attrib['title'] for elem in a}
 
-        # Save links to file
-        article_links = [(elem.attrib['href'], elem.attrib['title']) for elem in a]
-        with open('./article-links.txt', 'w') as f:
-            f.write('\n'.join(article_links))
+        # # Save links to file
+        # with open('./output/article-links.txt', 'a') as f:
+        #     out = ''.join([f'{k}\t{v}\n' for k,v in article_links.items()])
+        #     f.write(out)
 
-        # # Follow links
-        # for link in article_links:
-        #     yield scrapy.Request(link, callback=self.parse_page)
+        # Follow links
+        for link in list(article_links.keys()):
+            self.links.append(link)
+            self.title.append(article_links[link])
+            yield scrapy.Request(link, callback=self.parse_page)
 
-    # def parse_page(self, response: scrapy.http.TextResponse):
-    #     # Extract article text
-    #     pass
+    def parse_page(self, response: scrapy.http.TextResponse):
+        # Article URL
+        response.url
+        # Extract title
+        title = response.xpath('//h1[@class="entry-title"]').get()
+        # Extract article text
+        p = response.xpath('//span/p')
+        txt_list = [tag.get() for tag in p]
+        txt = ''.join(txt_list)
+        # Add to collection
+        self.text.append(txt)
+
+    def closed(self, reason):
+        '''This runs after the spider exits.'''
+        # Format collected data
+        data = {
+            'url': self.links,
+            'title': self.title,
+            'text': self.text
+        }
+        # Save collected data to disk
+        with open(f'./output/scraped_{self.category}.json', 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
 '''
 https://www.nownews.com/cat/politics/page/1/
 https://www.nownews.com/cat/finance/page/1/
@@ -56,4 +84,5 @@ To supply an argument, do this:
 
     scrapy crawl news_spider -a category=sport
 
+No need to handle duplicate links, scrapy does it for you!
 '''
