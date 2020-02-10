@@ -29,7 +29,7 @@ class NewsSpider(scrapy.Spider):
 
     def start_requests(self):
         # Go to each search result page
-        urls = [f'{self.url}?page={i}' for i in range(1, 1_172)]
+        urls = [f'{self.url}?page={i}' for i in range(1, 1_173)]
         for u in urls:
             yield scrapy.Request(u, callback=self.parse_links)
 
@@ -62,12 +62,16 @@ class NewsSpider(scrapy.Spider):
 
         skip article whose body contain 子瑜
         '''
-        # Extract title
-        title = response.xpath('//header[@class="article-header"]/h1')[0].get()
-        # Extract datetime
-        date = response.xpath('//header[@class="article-header"]/div/div/div/div[@class="meta-info"]/time')[0].attrib['datetime']
-        # Extract paragraphs
-        p = response.xpath('//div[@class="article-body"]/p')
+        try:
+            # Extract title
+            title = response.xpath('//header[@class="article-header"]/h1')[0].get()
+            # Extract datetime
+            date = response.xpath('//header[@class="article-header"]/div/div/div/div[@class="meta-info"]/time')[0].attrib['datetime']
+            # Extract paragraphs
+            p = response.xpath('//div[@class="article-body"]/p')
+        except Exception as e:
+            print(e)
+            return
         txt_list = [tag.get() for tag in p]
         txt = ''.join(txt_list)
         # Prepare scraped data for saving
