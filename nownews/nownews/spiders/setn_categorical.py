@@ -56,7 +56,7 @@ class NewsSpider(scrapy.Spider):
         self.out_dir = Path('./output/news_categorical')
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.category_id_name = {
-            '6': 'politic',
+            # '6': 'politic',
             '2': 'finance',
             '8': 'entertainment',
             '34': 'sport',
@@ -66,7 +66,7 @@ class NewsSpider(scrapy.Spider):
         # Go to each search result page
         categories = self.category_id_name.keys()
         urls = [f'{self.url}/ViewAll.aspx?PageGroupID={c}&p={i}' for c in categories for i in range(1, 5)]
-        for u in urls[:1]:
+        for u in urls:
             yield scrapy.Request(u, callback=self.parse_links)
 
     def parse_links(self, response: scrapy.http.TextResponse):
@@ -76,12 +76,15 @@ class NewsSpider(scrapy.Spider):
 
         skip links whose title starts with '影》'
         '''
-        # Ensure 'entertainment' link is indeed the wanted category
+        # Ensure 'entertainment' links are free of unrelated categories
         if 'ID=8' in response.url:
+            a = []
             # Get all rows
             rows = response.xpath('//div[@class="row NewsList"]/div/div')
             for r in rows:
-                if any([])
+                # Accept only these tags
+                if any(x in r.get() for x in ['娛樂', '電影', '日韓', '名家', '音樂']):
+                    a.append(r.xpath('h3/a'))
         else:
             # Collect links as usual
             a = response.xpath('//div[@class="row NewsList"]/div/div/h3/a')
@@ -91,7 +94,7 @@ class NewsSpider(scrapy.Spider):
         article_links = [elem.attrib['href'] for elem in a]
 
         # Follow links
-        for link in article_links[:2]:
+        for link in article_links:
             yield response.follow(link, callback=self.parse_page)
 
     def parse_page(self, response: scrapy.http.TextResponse):
@@ -108,16 +111,27 @@ class NewsSpider(scrapy.Spider):
         # https://www.setn.com/ViewAll.aspx?PageGroupID=8&p=2
         # Regex: ID=[\d]+
         referer = response.request.headers.get(b'Referer').decode() # eg https://www.chinatimes.com/sports/total?page=4
-        cat_id = re.search('ID=[\d]+', referer).group().split('=')[-1]
+        cat_id = re.search(r'ID=[\d]+', referer).group().split('=')[-1]
         category = self.category_id_name[cat_id]
-        # Extract title
-        title = response.xpath('//div/h1[@class="news-title-3"]')[0].get()
-        # Extract datetime
-        date = response.xpath('//div[@class="page-title-text"]/time')[0].get()
-        # Extract paragraphs
-        p = response.xpath('//article/div[@id="Content1"]/p')
-        txt_list = [tag.get() for tag in p]
-        txt = ''.join(txt_list)
+        # Handle entertainment news differently
+        if cat_id == '8':
+            # Extract title
+            title = response.xpath('//div/h1[@id="newsTitle"]')[0].get()
+            # Extract datetime
+            date = response.xpath('//div[@class="titleBtnBlock"]/div[@class="time"]')[0].get()
+            # Extract paragraphs
+            p = response.xpath('//article[@class="articleLay"]/div/div/p')
+            txt_list = [tag.get() for tag in p]
+            txt = ''.join(txt_list)
+        else:
+            # Extract title
+            title = response.xpath('//div/h1[@class="news-title-3"]')[0].get()
+            # Extract datetime
+            date = response.xpath('//div[@class="page-title-text"]/time')[0].get()
+            # Extract paragraphs
+            p = response.xpath('//article/div[@id="Content1"]/p')
+            txt_list = [tag.get() for tag in p]
+            txt = ''.join(txt_list)
         # Prepare scraped data for saving
         # https://www.setn.com/News.aspx?NewsID=689753
         article_link = response.url
@@ -141,7 +155,7 @@ Make sure to call the crawler class's name attribute.
 So we'd need to run this in a terminal:
 
     cd nownews
-    scrapy crawl wantwant_categorical
+    scrapy crawl setn_categorical
 
 No need to handle duplicate links, scrapy does it for you!
 '''
