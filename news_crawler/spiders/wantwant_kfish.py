@@ -13,7 +13,7 @@ from yarl import URL
 '''
 
 class NewsSpider(scrapy.Spider):
-    name = 'woof_spider'
+    name = 'wantwant_kfish'
 
     def __init__(self):
         super()

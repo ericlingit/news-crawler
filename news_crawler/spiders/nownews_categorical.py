@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 class NOWNewsSpider(scrapy.Spider):
-    name = 'nownews'
+    name = 'nownews_categorical'
 
     def __init__(self):
         super()
