@@ -1,0 +1,4 @@
+mypy
+
+scrapy==2.9.*
+yarl==1.9.*
