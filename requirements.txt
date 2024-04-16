@@ -1,4 +1,4 @@
 mypy
 
-scrapy==2.9.*
+scrapy>=2.11
 yarl==1.9.*
